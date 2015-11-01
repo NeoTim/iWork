@@ -1,0 +1,407 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman times
+\font_sans helvet
+\font_typewriter courier
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder true
+\pdf_colorlinks true
+\pdf_backref false
+\pdf_pdfusetitle true
+\pdf_quoted_options "citecolor=blue"
+\papersize letterpaper
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 0
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\topmargin 3cm
+\bottommargin 5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Cracking password protected Apple iWork files
+\end_layout
+
+\begin_layout Author
+DD2395 Project Report
+\end_layout
+
+\begin_layout Author
+Dhirendra Kholia (kholia@kth.se), Maxime Hulliger (hulliger@kth.se)
+\end_layout
+
+\begin_layout Section
+Abstract
+\end_layout
+
+\begin_layout Standard
+Password auditing of password hashes, and password protected files is a
+ process to find out weak passwords.
+ It is a popular, and useful exercise because it helps in improving security,
+ and simply because it is fun.
+ Apple iWork 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "iWork"
+
+\end_inset
+
+ is a proprietary inexpensive office suite to create documents, presentations,
+ and financial worksheets.
+ However, an open-source or even a free software to crack password protected
+ Apple iWork files did not exist previously, until now\SpecialChar \@.
+ The only alternate
+ is the proprietary, commercial software called ElcomSoft Distributed Password
+ Recovery (EDPR) 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "EDPR"
+
+\end_inset
+
+, and it costs 600€ for a limited distributed version.
+ Such proprietary, and closed-source services / software do not contribute
+ to research, and general progress.
+ 
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+Besides solving the problem at hand, we believe that our work is a positive
+ step in the process of rehabilitating reverse engineering 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "dolan2014repeatable"
+
+\end_inset
+
+ as a legitimate, and essential field of study.
+ The best part of this project is that we will get to see the open-source
+ community using, building upon, and improving our work in the near future.
+\end_layout
+
+\begin_layout Section
+Report
+\end_layout
+
+\begin_layout Standard
+We started our work by trying to understand the underlying file format used
+ by Apple the iWork suite.
+ We used a combination of IDA Pro, LLDB (running under OS X 10.11.1), and
+ WinHex for static, and dynamic analysis of Apple Keynote binaries 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "notes"
+
+\end_inset
+
+.
+ After a while, we stumbled upon the 
+\begin_inset Quotes eld
+\end_inset
+
+iWorkFileFormat
+\begin_inset Quotes erd
+\end_inset
+
+ project
+\begin_inset CommandInset citation
+LatexCommand cite
+key "iWorkFileFormat"
+
+\end_inset
+
+, and it had already reverse engineered the file format used by Apple's
+ iWork '13 suite.
+ Later on, we were able to extend the project to work with Apple iWork '09
+ files 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "CPU-code-2"
+
+\end_inset
+
+, which are quite different, by reverse engineering EDPR itself (reversing
+ of already reverse engineered projects is awesome fun).
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+Once we had figured out the underlying KDF (key derivation function) function,
+ and the encryption cipher, we wrote a plug-in for John the Ripper (JtR)
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "JtR"
+
+\end_inset
+
+ software to crack password protected Apple iWork files.
+ This plug-in has now been accepted, and merged into the John the Ripper
+ repository itself 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "CPU-code-1"
+
+\end_inset
+
+.
+ 
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+Apple iWork '13 uses PBKDF2-HMAC-SHA1 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "kaliski2000pkcs"
+
+\end_inset
+
+ with 100000 iterations, and as such the cracking speed on CPUs is pretty
+ low.
+ To counter this problem, we decided to use GPUs to do the password cracking.
+ Our OpenCL enabled plug-in has also been merged upstream 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "GPU-code"
+
+\end_inset
+
+.
+ The following sections show some benchmarking numbers for our JtR plug-ins.
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Performance on Intel i5-6500 CPU @ 3.2 GHz)
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+[dhiru@ultra]$ ../run/john --format=iwork --test
+\end_layout
+
+\begin_layout Plain Layout
+
+Will run 4 OpenMP threads
+\end_layout
+
+\begin_layout Plain Layout
+
+Benchmarking: iwork, Apple iWork '09 / '13...
+ [PBKDF2-SHA1...
+ AVX2 8x]
+\end_layout
+
+\begin_layout Plain Layout
+
+Speed for cost 1 (iteration count) of 100000
+\end_layout
+
+\begin_layout Plain Layout
+
+Raw:	966 c/s real, 242 c/s virtual
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Performance on nVIDIA GeForce TITAN X:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+[dhiru@super]$ ../run/john --format=iwork-opencl --test --dev=6
+\end_layout
+
+\begin_layout Plain Layout
+
+Will run 32 OpenMP threads
+\end_layout
+
+\begin_layout Plain Layout
+
+Device 6: GeForce GTX TITAN X
+\end_layout
+
+\begin_layout Plain Layout
+
+Benchmarking: iwork-opencl, Apple iWork...
+ '13 [PBKDF2-SHA1 OpenCL AES]
+\end_layout
+
+\begin_layout Plain Layout
+
+Speed for cost 1 (iteration count) of 100000
+\end_layout
+
+\begin_layout Plain Layout
+
+Raw:	21186 c/s real, 19980 c/s virtual
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+By using a single NVIDIA GPU, we are able to gain a 21x speed-up over the
+ CPU version.
+ This 
+\begin_inset Quotes eld
+\end_inset
+
+super
+\begin_inset Quotes erd
+\end_inset
+
+ host machine is a part of Solar Designer's HPC Village program, which provides
+ Open Source software developers with access to a heterogeneous (hybrid)
+ HPC platform 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "HPC-Village"
+
+\end_inset
+
+ for free.
+\end_layout
+
+\begin_layout Section
+Summary
+\end_layout
+
+\begin_layout Standard
+This was a fun project.
+ Let's reverse engineer more proprietary software! 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "wishlist"
+
+\end_inset
+
+ 
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+bibfiles "references"
+options "acm"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

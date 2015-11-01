@@ -1,0 +1,360 @@
+Notes
+-----
+
+SFApplication -> SFArchiving -> SFUtility (analyze these files in IDA Pro,
+found using otool -l on Keynote application)
+
+Debugging
+---------
+
+http://lldb.llvm.org/lldb-gdb.html
+
+
+$ sudo lldb /Applications/iWork\ \'09/Keynote.app/Contents/MacOS/Keynote
+
+(lldb) b '-[SFAppDocument checkPassphrase:]'
+Breakpoint 1: where = SFApplication`-[SFAppDocument checkPassphrase:], address = 0x00040f56
+(lldb) breakpoint list
+...
+(lldb) b '-[SFUCryptoKey initAes128KeyFromPassphrase:length:iterationCount:]'  # good!
+...
+
+...
+
+(lldb) b CCCalibratePBKDF
+Breakpoint 1: where = libcommonCrypto.dylib`CCCalibratePBKDF, address = 0x94666284
+
+Trace for CC_MD5_Update,
+    ...
+    frame #6: 0x9cdccdbf Security`cssm_EncryptDataUpdate(long, unsigned long long, cssm_data const*, unsigned int, cssm_data*, unsigne
+d int, unsigned long*) + 336
+    frame #7: 0x9cddbf67 Security`CSSM_EncryptDataUpdate + 104
+    frame #8: 0x02799022 SFUtility`-[SFUCryptor cryptDataFromBuffer:length:toStream:finished:crc32:error:] + 274
+    frame #9: 0x02798efe SFUtility`-[SFUCryptor cryptDataFromBuffer:length:toStream:finished:error:] + 78
+    frame #10: 0x0279a90b SFUtility`+[SFUCryptoUtils generatePassphraseVerifierForKey:] + 731
+    frame #11: 0x016d036c SFArchiving`-[SFEDataManager passphraseVerifier] + 76
+    frame #12: 0x0331df7d SFApplication`-[SFAppDocument checkPassphrase:] + 39
+    frame #13: 0x0333fd10 SFApplication`-[SFAppPasswordUIController changePassword:] + 464
+    frame #14: 0x904f19e4 libobjc.A.dylib`-[NSObject performSelector:withObject:] + 70
+    frame #15: 0x99fcb776 AppKit`__36-[NSApplication sendAction:to:from:]_block_invoke + 51
+    frame #16: 0x940c33c9 libsystem_trace.dylib`_os_activity_initiate + 85
+    frame #17: 0x99fcb697 AppKit`-[NSApplication sendAction:to:from:] + 610
+    frame #18: 0x032f16f2 SFApplication`-[SFAppApplication sendAction:to:from:] + 608
+    frame #19: 0x99fdf089 AppKit`-[NSControl sendAction:to:] + 102
+    frame #20: 0x99fdef7d AppKit`__26-[NSCell _sendActionFrom:]_block_invoke + 176
+    frame #21: 0x940c33c9 libsystem_trace.dylib`_os_activity_initiate + 85
+    frame #22: 0x99fdeeac AppKit`-[NSCell _sendActionFrom:] + 161
+    frame #23: 0x9a04757e AppKit`__29-[NSButtonCell performClick:]_block_invoke + 43
+    frame #24: 0x940c33c9 libsystem_trace.dylib`_os_activity_initiate + 85
+
+(lldb) b '-[SFAppDocument checkPassphrase:]'
+Breakpoint 20: where = SFApplication`-[SFAppDocument checkPassphrase:], address = 0x0331df56
+
+otool -L /Applications/iWork\ \'09/Keynote.app/Contents/MacOS/Keynote
+
+Process 61869 stopped
+* thread #1: tid = 0x2875d, 0x0331df56 SFApplication`-[SFAppDocument checkPassphrase:], queue = 'com.apple.main-thread', stop reason =
+ breakpoint 20.1 21.1
+    frame #0: 0x0331df56 SFApplication`-[SFAppDocument checkPassphrase:]
+SFApplication`-[SFAppDocument checkPassphrase:]:
+->  0x331df56 <+0>: pushl  %ebp
+    0x331df57 <+1>: movl   %esp, %ebp
+    0x331df59 <+3>: pushl  %edi
+    0x331df5a <+4>: pushl  %esi
+(lldb) c
+Process 61869 resuming
+Process 61869 stopped
+* thread #1: tid = 0x2875d, 0x94662d5b libcommonCrypto.dylib`CCCryptorEncryptDataBlock, queue = 'com.apple.main-thread', stop reason =
+ breakpoint 17.1
+    frame #0: 0x94662d5b libcommonCrypto.dylib`CCCryptorEncryptDataBlock
+libcommonCrypto.dylib`CCCryptorEncryptDataBlock:
+->  0x94662d5b <+0>: pushl  %ebp
+    0x94662d5c <+1>: movl   %esp, %ebp
+    0x94662d5e <+3>: pushl  %ebx
+    0x94662d5f <+4>: pushl  %edi
+(lldb) bt
+* thread #1: tid = 0x2875d, 0x94662d5b libcommonCrypto.dylib`CCCryptorEncryptDataBlock, queue = 'com.apple.main-thread', stop reason =
+ breakpoint 17.1
+  * frame #0: 0x94662d5b libcommonCrypto.dylib`CCCryptorEncryptDataBlock
+    frame #1: 0x9cca4752 Security`GAESContext::encryptBlock(void const*, unsigned long, void*, unsigned long&, bool) + 58
+    frame #2: 0x9cc64be6 Security`BlockCryptor::update(void*, unsigned long&, void*, unsigned long&) + 818
+    frame #3: 0x9cc64718 Security`Security::CSPFullPluginSession::CSPContext::update(Security::CssmData const*, unsigned int, Security
+::CSPFullPluginSession::Writer&) + 214
+    frame #4: 0x9cdc4b2c Security`Security::CSPFullPluginSession::EncryptDataUpdate(unsigned long long, Security::CssmData const*, uns
+igned int, Security::CssmData*, unsigned int, unsigned long&) + 176
+    frame #5: 0x9cdc4b8a Security`non-virtual thunk to Security::CSPFullPluginSession::EncryptDataUpdate(unsigned long long, Security::CssmData const*, unsigned int, Security::CssmData*, unsigned int, unsigned long&) + 72
+    frame #6: 0x9cdccdbf Security`cssm_EncryptDataUpdate(long, unsigned long long, cssm_data const*, unsigned int, cssm_data*, unsign$d int, unsigned long*) + 336
+    frame #7: 0x9cddbf67 Security`CSSM_EncryptDataUpdate + 104
+    frame #8: 0x02799022 SFUtility`-[SFUCryptor cryptDataFromBuffer:length:toStream:finished:crc32:error:] + 274
+    frame #9: 0x02798efe SFUtility`-[SFUCryptor cryptDataFromBuffer:length:toStream:finished:error:] + 78
+    frame #10: 0x0279a90b SFUtility`+[SFUCryptoUtils generatePassphraseVerifierForKey:] + 731
+    frame #11: 0x016d036c SFArchiving`-[SFEDataManager passphraseVerifier] + 76
+    frame #12: 0x0331df7d SFApplication`-[SFAppDocument checkPassphrase:] + 39
+    frame #13: 0x0333fd10 SFApplication`-[SFAppPasswordUIController changePassword:] + 464
+    frame #14: 0x904f19e4 libobjc.A.dylib`-[NSObject performSelector:withObject:] + 70
+
+
+
+http://llvm.org/svn/llvm-project/lldb/trunk/examples/python/
+
+process attach -n "dictionary"
+
+process launch --stop-at-entry -- -program_arg value
+
+
+...
+
+
+(lldb) b CC_MD5_Update
+Breakpoint 5: where = libcommonCrypto.dylib`CC_MD5_Update, address = 0x997a6f36
+(lldb) c
+Process 389 resuming
+Process 389 stopped
+* thread #1: tid = 0x10d7, 0x997a6f36 libcommonCrypto.dylib`CC_MD5_Update, queue = 'com.apple.main-thread', stop reason = breakpoint 5.1
+    frame #0: 0x997a6f36 libcommonCrypto.dylib`CC_MD5_Update
+libcommonCrypto.dylib`CC_MD5_Update:
+->  0x997a6f36 <+0>: pushl  %ebp
+    0x997a6f37 <+1>: movl   %esp, %ebp
+    0x997a6f39 <+3>: pushl  %ebx
+    0x997a6f3a <+4>: pushl  %edi
+(lldb) bt
+* thread #1: tid = 0x10d7, 0x997a6f36 libcommonCrypto.dylib`CC_MD5_Update, queue = 'com.apple.main-thread', stop reason = breakpoint 5.1
+  * frame #0: 0x997a6f36 libcommonCrypto.dylib`CC_MD5_Update
+    frame #1: 0x9a79ea47 CoreGraphics`calibrated_gray_get_md5 + 59
+    frame #2: 0x9a759a20 CoreGraphics`color_space_get_md5_digest + 53
+    frame #3: 0x9a7599d1 CoreGraphics`color_space_get_identifier + 11
+    frame #4: 0x9b39faf2 CoreFoundation`CFBasicHashFindBucket + 514
+    frame #5: 0x9b3f097b CoreFoundation`CFSetGetValue + 123
+    frame #6: 0x9a75990b CoreGraphics`CGColorSpaceRegister + 63
+    frame #7: 0x963aac7a libRIP.A.dylib`ripc_GetDefaultColorTransform + 54
+    frame #8: 0x963ac5c9 libRIP.A.dylib`ripc_BeginLayer + 1051
+    frame #9: 0x9a79e2eb CoreGraphics`CGContextBeginTransparencyLayerWithRect + 134
+    frame #10: 0x93a88d07 AppKit`+[_NSAutomaticFocusRing showForView:] + 4522
+    frame #11: 0x93a87b56 AppKit`-[NSView(NSPrivateFocusRingSupport) showActiveFirstResponderIndication] + 67
+    frame #12: 0x93a87a83 AppKit`-[NSView didBecomeActiveFirstResponder] + 102
+    frame #13: 0x93a878d7 AppKit`+[_NSAutomaticFocusRing setActiveFirstResponderChanged] + 354
+    frame #14: 0x93a876e8 AppKit`___NSPostActiveFirstResponderChanged_block_invoke + 41
+    frame #15: 0x9b445dfd CoreFoundation`_runLoopObserverWithBlockContext + 29
+    frame #16: 0x9b445afe CoreFoundation`__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ + 30
+    frame #17: 0x9b445a5e CoreFoundation`__CFRunLoopDoObservers + 398
+    frame #18: 0x9b423262 CoreFoundation`__CFRunLoopRun + 946
+    frame #19: 0x9b422c46 CoreFoundation`CFRunLoopRunSpecific + 390
+    frame #20: 0x9b422aab CoreFoundation`CFRunLoopRunInMode + 123
+    frame #21: 0x91e93719 HIToolbox`RunCurrentEventLoopInMode + 267
+    frame #22: 0x91e933ed HIToolbox`ReceiveNextEventCommon + 201
+    frame #23: 0x91e93314 HIToolbox`_BlockUntilNextEventMatchingListInModeWithFilter + 99
+    frame #24: 0x93928d7a AppKit`_DPSNextEvent + 1053
+    frame #25: 0x939282f4 AppKit`-[NSApplication _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 1057
+    frame #26: 0x93927ecb AppKit`-[NSApplication nextEventMatchingMask:untilDate:inMode:dequeue:] + 121
+    frame #27: 0x93bb75b0 AppKit`-[NSApplication _realDoModalLoop:peek:] + 740
+    frame #28: 0x93bb72c4 AppKit`-[NSApplication _doModalLoop:peek:] + 207
+    frame #29: 0x93bb4b68 AppKit`-[NSApplication runModalForWindow:] + 324
+    frame #30: 0x03340276 SFApplication`-[SFAppPasswordUIController modalGetPasswordDialogWithProtectedDocumentInfo:saveInKeychain:] + 938
+    frame #31: 0x0333dd3e SFApplication`-[SFAppDocumentPassphraseController getPassphraseFromUser] + 210
+    frame #32: 0x016c3fc2 SFArchiving`-[SFAXMLUnarchiver(Private) getPassphraseForEncryptedDocument] + 258
+    frame #33: 0x016adb63 SFArchiving`-[SFAXMLUnarchiver initFromPath:indexLocator:dataManager:uidNamespace:] + 227
+    frame #34: 0x016ad998 SFArchiving`-[SFAXMLUnarchiver initFromPath:indexFilename:dataManager:uidNamespace:] + 248
+    frame #35: 0x0022fa34 Keynote`___lldb_unnamed_function138$$Keynote + 86100
+    frame #36: 0x0022ecea Keynote`___lldb_unnamed_function138$$Keynote + 82698
+    frame #37: 0x000a8c5f Keynote
+    frame #38: 0x000a875f Keynote
+    frame #39: 0x93b7a87f AppKit`-[NSDocument _initWithContentsOfURL:ofType:error:] + 230
+    frame #40: 0x93b7a719 AppKit`-[NSDocument initWithContentsOfURL:ofType:error:] + 281
+    frame #41: 0x93c7525b AppKit`-[NSDocumentController makeDocumentWithContentsOfURL:ofType:error:] + 732
+    frame #42: 0x000163ed Keynote
+    frame #43: 0x00096fb4 Keynote
+    frame #44: 0x032f4c2e SFApplication`-[SFAppApplicationDelegate(Private) pOpenDocumentWithContentsOfFile:] + 116
+    frame #45: 0x032f2115 SFApplication`-[SFAppApplicationDelegate application:openFile:] + 129
+    frame #46: 0x001f7e88 Keynote`___lldb_unnamed_function40$$Keynote + 55460
+    frame #47: 0x93edcd93 AppKit`-[NSDocumentController _restorePersistentDocumentWithState:completionHandler:] + 1672
+    frame #48: 0x93edd4cc AppKit`__76+[NSDocumentController restoreWindowWithIdentifier:state:completionHandler:]_block_invoke_2 + 707
+    frame #49: 0x93c73201 AppKit`-[NSDocumentController _waitForAsyncOpeningOrPrintingToFinishThenContinue:] + 245
+    frame #50: 0x93edd201 AppKit`__76+[NSDocumentController restoreWindowWithIdentifier:state:completionHandler:]_block_invoke + 176
+    frame #51: 0x93bd55ca AppKit`-[NSApplication _continueReopening] + 270
+    frame #52: 0x93db6cf4 AppKit`__32-[NSApplication finishLaunching]_block_invoke + 98
+    frame #53: 0x9d68cda2 Foundation`-[__NSObserver _doit:] + 320
+    frame #54: 0x9d68cc5b Foundation`__67-[NSNotificationCenter addObserverForName:object:queue:usingBlock:]_block_invoke + 59
+    frame #55: 0x9b43c3f4 CoreFoundation`__CFNOTIFICATIONCENTER_IS_CALLING_OUT_TO_AN_OBSERVER__ + 20
+    frame #56: 0x9b43c37b CoreFoundation`___CFXRegistrationPost_block_invoke + 75
+    frame #57: 0x9b43c2ec CoreFoundation`_CFXRegistrationPost + 460
+    frame #58: 0x9b43c026 CoreFoundation`___CFXNotificationPost_block_invoke + 54
+    frame #59: 0x9b3f59a3 CoreFoundation`-[_CFXNotificationRegistrar find:object:observer:enumerator:] + 1715
+    frame #60: 0x9b3f4bc2 CoreFoundation`_CFXNotificationPost + 626
+    frame #61: 0x9d63dbc4 Foundation`-[NSNotificationCenter postNotificationName:object:userInfo:] + 92
+    frame #62: 0x93a83b4c AppKit`-[NSApplication _postDidFinishNotification] + 436
+    frame #63: 0x93a837fa AppKit`-[NSApplication _sendFinishLaunchingNotification] + 249
+    frame #64: 0x9392e04e AppKit`-[NSApplication(NSAppleEventHandling) _handleAEOpenEvent:] + 783
+    frame #65: 0x9392d9a4 AppKit`-[NSApplication(NSAppleEventHandling) _handleCoreEvent:withReplyEvent:] + 291
+    frame #66: 0x99bcf5ac libobjc.A.dylib`-[NSObject performSelector:withObject:withObject:] + 84
+    frame #67: 0x9d68f2c0 Foundation`__76-[NSAppleEventManager setEventHandler:andSelector:forEventClass:andEventID:]_block_invoke + 118
+    frame #68: 0x9d68ee17 Foundation`-[NSAppleEventManager dispatchRawAppleEvent:withRawReply:handlerRefCon:] + 451
+    frame #69: 0x9d68ec12 Foundation`_NSAppleEventManagerGenericHandler + 211
+    frame #70: 0x963cfe54 AE`aeDispatchAppleEvent(AEDesc const*, AEDesc*, unsigned long, unsigned char*) + 595
+    frame #71: 0x963ccb75 AE`dispatchEventAndSendReply(AEDesc const*, AEDesc*) + 44
+    frame #72: 0x963cca88 AE`aeProcessAppleEvent + 299
+    frame #73: 0x91ea3c5a HIToolbox`AEProcessAppleEvent + 55
+    frame #74: 0x939292cc AppKit`_DPSNextEvent + 2415
+    frame #75: 0x939282f4 AppKit`-[NSApplication _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 1057
+    frame #76: 0x93927ecb AppKit`-[NSApplication nextEventMatchingMask:untilDate:inMode:dequeue:] + 121
+    frame #77: 0x9391b63f AppKit`-[NSApplication run] + 1063
+    frame #78: 0x0000f13f Keynote
+    frame #79: 0x0000f0b8 Keynote
+    frame #80: 0x0000ee50 Keynote
+    frame #81: 0x0005cc79 Keynote
+(lldb)
+
+->  0x997a6fcd <+151>: pushl  %eax
+    0x997a6fce <+152>: pushl  %ebx
+    0x997a6fcf <+153>: pushl  %esi
+    0x997a6fd0 <+154>: calll  0x997ad12a                ; symbol stub for: ccdigest_update
+(lldb) print $eax
+(unsigned int) $16 = 4
+
+
+libcommonCrypto.dylib`CC_MD5_Update:
+->  0x997a6fbf <+137>: addl   0x8(%esi), %ecx
+    0x997a6fc2 <+140>: movl   %eax, 0x8(%ebx,%ecx)
+    0x997a6fc6 <+144>: movl   0xc(%ebp), %eax
+    0x997a6fc9 <+147>: pushl  %eax
+
+
+b 0x997a6fc9
+
+->  0x997a6fcd <+151>: pushl  %eax
+    0x997a6fce <+152>: pushl  %ebx
+    0x997a6fcf <+153>: pushl  %esi
+    0x997a6fd0 <+154>: calll  0x997ad12a                ; symbol stub for: ccdigest_update
+(lldb) print $eax
+(unsigned int) $5 = 4
+(lldb) print $eax
+(unsigned int) $6 = 4
+(lldb)
+
+...
+
+Debugging
+---------
+
+http://lldb.llvm.org/lldb-gdb.html
+
+
+$ sudo lldb /Applications/iWork\ \'09/Keynote.app/Contents/MacOS/Keynote
+
+(lldb) b '-[SFAppDocument checkPassphrase:]'
+Breakpoint 1: where = SFApplication`-[SFAppDocument checkPassphrase:], address = 0x00040f56
+(lldb) breakpoint list
+...
+(lldb) b '-[SFUCryptoKey initAes128KeyFromPassphrase:length:iterationCount:]'  # good!
+...
+
+...
+
+(lldb) b CCCalibratePBKDF
+Breakpoint 1: where = libcommonCrypto.dylib`CCCalibratePBKDF, address = 0x94666284
+
+Trace for CC_MD5_Update,
+    ...
+    frame #6: 0x9cdccdbf Security`cssm_EncryptDataUpdate(long, unsigned long long, cssm_data const*, unsigned int, cssm_data*, unsigne
+d int, unsigned long*) + 336
+    frame #7: 0x9cddbf67 Security`CSSM_EncryptDataUpdate + 104
+    frame #8: 0x02799022 SFUtility`-[SFUCryptor cryptDataFromBuffer:length:toStream:finished:crc32:error:] + 274
+    frame #9: 0x02798efe SFUtility`-[SFUCryptor cryptDataFromBuffer:length:toStream:finished:error:] + 78
+    frame #10: 0x0279a90b SFUtility`+[SFUCryptoUtils generatePassphraseVerifierForKey:] + 731
+    frame #11: 0x016d036c SFArchiving`-[SFEDataManager passphraseVerifier] + 76
+    frame #12: 0x0331df7d SFApplication`-[SFAppDocument checkPassphrase:] + 39
+    frame #13: 0x0333fd10 SFApplication`-[SFAppPasswordUIController changePassword:] + 464
+    frame #14: 0x904f19e4 libobjc.A.dylib`-[NSObject performSelector:withObject:] + 70
+    frame #15: 0x99fcb776 AppKit`__36-[NSApplication sendAction:to:from:]_block_invoke + 51
+    frame #16: 0x940c33c9 libsystem_trace.dylib`_os_activity_initiate + 85
+    frame #17: 0x99fcb697 AppKit`-[NSApplication sendAction:to:from:] + 610
+    frame #18: 0x032f16f2 SFApplication`-[SFAppApplication sendAction:to:from:] + 608
+    frame #19: 0x99fdf089 AppKit`-[NSControl sendAction:to:] + 102
+    frame #20: 0x99fdef7d AppKit`__26-[NSCell _sendActionFrom:]_block_invoke + 176
+    frame #21: 0x940c33c9 libsystem_trace.dylib`_os_activity_initiate + 85
+    frame #22: 0x99fdeeac AppKit`-[NSCell _sendActionFrom:] + 161
+    frame #23: 0x9a04757e AppKit`__29-[NSButtonCell performClick:]_block_invoke + 43
+    frame #24: 0x940c33c9 libsystem_trace.dylib`_os_activity_initiate + 85
+
+(lldb) b '-[SFAppDocument checkPassphrase:]'
+Breakpoint 20: where = SFApplication`-[SFAppDocument checkPassphrase:], address = 0x0331df56
+
+otool -L /Applications/iWork\ \'09/Keynote.app/Contents/MacOS/Keynote
+
+Process 61869 stopped
+* thread #1: tid = 0x2875d, 0x0331df56 SFApplication`-[SFAppDocument checkPassphrase:], queue = 'com.apple.main-thread', stop reason =
+ breakpoint 20.1 21.1
+    frame #0: 0x0331df56 SFApplication`-[SFAppDocument checkPassphrase:]
+SFApplication`-[SFAppDocument checkPassphrase:]:
+->  0x331df56 <+0>: pushl  %ebp
+    0x331df57 <+1>: movl   %esp, %ebp
+    0x331df59 <+3>: pushl  %edi
+    0x331df5a <+4>: pushl  %esi
+(lldb) c
+Process 61869 resuming
+Process 61869 stopped
+* thread #1: tid = 0x2875d, 0x94662d5b libcommonCrypto.dylib`CCCryptorEncryptDataBlock, queue = 'com.apple.main-thread', stop reason =
+ breakpoint 17.1
+    frame #0: 0x94662d5b libcommonCrypto.dylib`CCCryptorEncryptDataBlock
+libcommonCrypto.dylib`CCCryptorEncryptDataBlock:
+->  0x94662d5b <+0>: pushl  %ebp
+    0x94662d5c <+1>: movl   %esp, %ebp
+    0x94662d5e <+3>: pushl  %ebx
+    0x94662d5f <+4>: pushl  %edi
+(lldb) bt
+* thread #1: tid = 0x2875d, 0x94662d5b libcommonCrypto.dylib`CCCryptorEncryptDataBlock, queue = 'com.apple.main-thread', stop reason =
+ breakpoint 17.1
+  * frame #0: 0x94662d5b libcommonCrypto.dylib`CCCryptorEncryptDataBlock
+    frame #1: 0x9cca4752 Security`GAESContext::encryptBlock(void const*, unsigned long, void*, unsigned long&, bool) + 58
+    frame #2: 0x9cc64be6 Security`BlockCryptor::update(void*, unsigned long&, void*, unsigned long&) + 818
+    frame #3: 0x9cc64718 Security`Security::CSPFullPluginSession::CSPContext::update(Security::CssmData const*, unsigned int, Security
+::CSPFullPluginSession::Writer&) + 214
+    frame #4: 0x9cdc4b2c Security`Security::CSPFullPluginSession::EncryptDataUpdate(unsigned long long, Security::CssmData const*, uns
+igned int, Security::CssmData*, unsigned int, unsigned long&) + 176
+    frame #5: 0x9cdc4b8a Security`non-virtual thunk to Security::CSPFullPluginSession::EncryptDataUpdate(unsigned long long, Security::CssmData const*, unsigned int, Security::CssmData*, unsigned int, unsigned long&) + 72
+    frame #6: 0x9cdccdbf Security`cssm_EncryptDataUpdate(long, unsigned long long, cssm_data const*, unsigned int, cssm_data*, unsign$d int, unsigned long*) + 336
+    frame #7: 0x9cddbf67 Security`CSSM_EncryptDataUpdate + 104
+    frame #8: 0x02799022 SFUtility`-[SFUCryptor cryptDataFromBuffer:length:toStream:finished:crc32:error:] + 274
+    frame #9: 0x02798efe SFUtility`-[SFUCryptor cryptDataFromBuffer:length:toStream:finished:error:] + 78
+    frame #10: 0x0279a90b SFUtility`+[SFUCryptoUtils generatePassphraseVerifierForKey:] + 731
+    frame #11: 0x016d036c SFArchiving`-[SFEDataManager passphraseVerifier] + 76
+    frame #12: 0x0331df7d SFApplication`-[SFAppDocument checkPassphrase:] + 39
+    frame #13: 0x0333fd10 SFApplication`-[SFAppPasswordUIController changePassword:] + 464
+    frame #14: 0x904f19e4 libobjc.A.dylib`-[NSObject performSelector:withObject:] + 70
+
+
+
+http://llvm.org/svn/llvm-project/lldb/trunk/examples/python/
+
+process attach -n "dictionary"
+
+process launch --stop-at-entry -- -program_arg value
+
+...
+
+
+http://www.opensource.apple.com/source/libsecurity_cssm/libsecurity_cssm-36064/lib/cssmtype.h
+
+http://opensource.apple.com/source/Security/Security-54/AppleCSP/AppleCSP/deriveKey.cpp
+
+https://chromium.googlesource.com/chromium/src/base/+/3b9459cbc20fb05d8a31ab353076fc9b7fa20f4b/crypto/symmetric_key_mac.cc
+
+http://web.mit.edu/darwin/src/modules/Security/CertTool/cdsaUtils/cdsaUtils.c
+
+https://github.com/Apple-FOSS-Mirror/Security/blob/master/libsecurity_pkcs12/lib/pkcs12Crypto.cpp
+
+function -[SFAppDocument checkPassphrase:] {
+    loc_40f61(stack[2048], stack[2047], stack[2046]);
+    esp = esp - 0x3c;
+    var_20 = objc_msgSend(stack[2048], *(self + 0x58), @selector(passphraseVerifier));
+    eax = 0x0;
+    if (var_20 != 0x0) {
+            var_1C = [arg_8 UTF8String];
+            esi = [SFUCryptoUtils iterationCountFromPassphraseVerifier:var_20];
+            edi = [SFUCryptoKey alloc];
+            edi = [edi initAes128KeyFromPassphrase:var_1C length:strlen(var_1C) iterationCount:esi];
+            esi = [SFUCryptoUtils checkKey:edi againstPassphraseVerifier:var_20];
+            [edi release];
+            eax = sign_extend_32(esi);
+    }
+    return eax;
+}
